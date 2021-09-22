@@ -9,6 +9,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import Login from './Auth/Login';
+import AuthCheck from './Auth/AuthCheck';
 import Feed from './Feed/Feed';
 import Profile from './Profile/Profile';
 
@@ -83,7 +84,9 @@ function Routes() {
           close: closeconfig,
         },
       }}>
+      <Stack.Screen name="AuthCheck" component={AuthCheck} />
       <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Feed" component={Feed} />
     </Stack.Navigator>
   );
 }

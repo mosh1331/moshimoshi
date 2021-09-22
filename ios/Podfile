@@ -12,6 +12,8 @@ target 'moshi_moshi' do
     :hermes_enabled => false
   )
 
+  pod 'RNCAsyncStorage', :path => '../node_modules/@react-native-async-storage/async-storage'
+
   target 'moshi_moshiTests' do
     inherit! :complete
     # Pods for testing

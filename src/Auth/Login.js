@@ -9,15 +9,30 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Loader from '../assets/Loader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const baseColor = '#E63571';
+// const baseColor = '#888a85';
 
-const Login = () => {
-  const [email, setemail] = useState(null);
-  const [password, setpassword] = useState(null);
+const Login = ({navigation}) => {
+  const [email, setemail] = useState('');
+  const [password, setpassword] = useState('');
+  const [logging, setLogging] = useState(false);
+  const [disableBtn, setDisableBtn] = useState(true);
+  const [validmail, setvalidmail] = useState(false);
+
+  useEffect(() => {
+    if (email.length > 0 && password.length > 0 && validmail) {
+      setDisableBtn(false);
+    } else {
+      setDisableBtn(true);
+    }
+  }, [email, password, validmail]);
 
   const signUp = async () => {
     auth()
@@ -39,19 +54,36 @@ const Login = () => {
           //show message  and state 0
           console.log('That email address is invalid!');
         }
-
         console.error(error);
       });
   };
   const login = async () => {
+    setLogging(true);
     auth()
       .signInWithEmailAndPassword(email, password)
       .then(e => {
         console.log(e, 'User signed in!');
+        setLogging(false);
+        saveUser(e);
       })
       .catch(error => {
+        setLogging(false);
+        Alert.alert(error.message);
+
         console.error(error);
       });
+  };
+
+  const saveUser = async user => {
+    console.log(user, 'user');
+    //set in async
+    const jsonValue = JSON.stringify(user);
+    await AsyncStorage.setItem('@user', jsonValue).then(() =>
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Feed'}],
+      }),
+    );
   };
 
   const signout = () => {
@@ -59,10 +91,31 @@ const Login = () => {
       .signOut()
       .then(e => console.log(e, 'User signed out!'));
   };
+
+  const mailValidator = () => {
+    {
+      let regexEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+      if (email.match(regexEmail)) {
+        setvalidmail(true);
+      } else {
+        setvalidmail(false);
+      }
+    }
+  };
+
+  const formCopulate = async (text, type) => {
+    if (type === 'mail') {
+      setemail(text);
+    } else {
+      setpassword(text);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <StatusBar barStyle={'light-content'} backgroundColor={baseColor} />
       <View style={styles.upperbody}>
-        <Text>もしもし</Text>
+        <Text style={{color: '#fff', fontWeight: 'bold'}}>もしもし</Text>
         <View style={styles.imageContainer}>
           <Image
             source={require('../assets/images/kitty.png')}
@@ -80,6 +133,9 @@ const Login = () => {
             style={styles.input}
             placeholderTextColor={'grey'}
             keyboardType={'email-address'}
+            onChangeText={e => formCopulate(e, 'mail')}
+            onBlur={() => mailValidator()}
+            onSubmitEditing={() => mailValidator()}
           />
         </View>
         <View style={styles.inputField}>
@@ -90,15 +146,51 @@ const Login = () => {
             placeholder={'Password'}
             style={styles.input}
             placeholderTextColor={'grey'}
+            // secureTextEntry={true}
+            secureTextEntry
+            onChangeText={e => formCopulate(e, 'password')}
           />
         </View>
-        <TouchableOpacity onPress={() => login()} style={styles.btn}>
-          <Text style={styles.btnText}>Login</Text>
-          <Icon name={'arrow-right'} size={30} color={'white'} />
-        </TouchableOpacity>
+
+        {logging ? (
+          <View style={styles.loading}>
+            <Loader />
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={() => login()}
+            disabled={disableBtn}
+            style={[styles.btn, disableBtn && {backgroundColor: 'grey'}]}>
+            <Text style={styles.btnText}>Login</Text>
+            <Icon name={'arrow-right'} size={30} color={'white'} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity>
           <Text style={styles.registerText}>Register Here </Text>
         </TouchableOpacity>
+        <View style={styles.centered}>
+          <Text style={styles.text}>-- Or login with --</Text>
+        </View>
+        <View style={[styles.centered, {flexDirection: 'row'}]}>
+          <TouchableOpacity style={styles.socialIcon}>
+            <Image
+              source={require('../assets/images/search.png')}
+              style={styles.image}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialIcon}>
+            <Image
+              source={require('../assets/images/facebook.png')}
+              style={styles.image}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialIcon}>
+            <Image
+              source={require('../assets/images/twitter.png')}
+              style={styles.image}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* /// body ends */}
     </View>
@@ -158,14 +250,19 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     fontSize: 16,
   },
+  loading: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 50,
+  },
   btn: {
-    padding: 10,
     backgroundColor: baseColor,
     marginBottom: 20,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
+    height: 50,
   },
   btnText: {
     fontFamily: 'Nunito-Bold',
@@ -176,5 +273,18 @@ const styles = StyleSheet.create({
   registerText: {
     fontFamily: 'Nunito-Bold',
     color: 'blue',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    fontFamily: 'Nunito-Regular',
+    marginBottom: 20,
+  },
+  socialIcon: {
+    width: 30,
+    height: 30,
+    marginHorizontal: 5,
   },
 });
